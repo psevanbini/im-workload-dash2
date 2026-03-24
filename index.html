@@ -1,0 +1,85 @@
+<div id="view-territory" class="view active">
+  <div class="controls">
+    <h2 style="color:var(--ps-dark-green); margin:0;">Territory Load Overview (EST)</h2>
+    <div class="control-group">
+      <button id="btn-sort-tier-territory" class="btn-action" onclick="toggleTierSort()">Sort Tier ↑↓</button>
+      <button id="btn-grid-territory" class="btn-action" onclick="setLayout('grid')">Card View</button>
+      <button id="btn-list-territory" class="btn-action active" onclick="setLayout('list')">List View</button>
+    </div>
+  </div>
+  
+  <div id="territory-display"></div>
+</div>
+
+<script>
+/* LOCKED DATA FROM MY WORKLOAD:
+   We will keep the global color constants and point values in place.
+   The following logic focuses strictly on the Territory/Team views.
+*/
+
+// Mock Data for Territory (EST)
+// We need to add "projectPoints" and "projectCount" to these objects
+let territoryData = [
+  { name: "Alex R.", tier: "T4", dealPoints: 85, projectPoints: 12, dealsCount: 10, projectCount: 2, yellowRisk: 2, redRisk: 1, tz: "EST" },
+  { name: "Jordan M.", tier: "T2", dealPoints: 65, projectPoints: 5, dealsCount: 9, projectCount: 1, yellowRisk: 1, redRisk: 0, tz: "EST" },
+  { name: "Casey S.", tier: "T3", dealPoints: 45, projectPoints: 0, dealsCount: 10, projectCount: 0, yellowRisk: 0, redRisk: 0, tz: "EST" },
+  { name: "Morgan L.", tier: "T1", dealPoints: 55, projectPoints: 10, dealsCount: 11, projectCount: 3, yellowRisk: 2, redRisk: 1, tz: "EST" }
+];
+
+function renderTerritoryContent() {
+  const display = document.getElementById('territory-display');
+  if(!display) return;
+  display.innerHTML = '';
+  
+  // Current Layout Logic
+  if (currentLayout === 'list') {
+    const table = document.createElement('table');
+    table.style.border = "1px solid #ddd"; // Branded border
+    table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Tier</th>
+          <th>IM Name</th>
+          <th>Deal Pts</th>
+          <th>Proj Pts</th>
+          <th>Total / Cap</th>
+          <th>% Cap</th>
+          <th>Risks</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="territory-list-body"></tbody>
+    `;
+    display.appendChild(table);
+    
+    const body = document.getElementById('territory-list-body');
+    territoryData.forEach(im => {
+      const mpc = MPC_VALUES[im.tier];
+      const totalPoints = im.dealPoints + im.projectPoints;
+      const capPct = Math.round((totalPoints / mpc) * 100);
+      const statusColor = capPct >= 90 ? 'var(--ps-red)' : (capPct >= 80 ? 'var(--ps-gold)' : 'var(--ps-green)');
+      
+      body.innerHTML += `
+        <tr>
+          <td>${im.tier}</td>
+          <td><strong>${im.name}</strong></td>
+          <td>${im.dealPoints}</td>
+          <td>${im.projectPoints}</td>
+          <td><strong>${totalPoints}</strong> / ${mpc}</td>
+          <td><span style="color:${statusColor}; font-weight:700;">${capPct}%</span></td>
+          <td>${im.yellowRisk}Y / ${im.redRisk}R</td>
+          <td><input type="text" style="width:100%; border:1px solid #eee;" placeholder="Add note..."></td>
+        </tr>
+      `;
+    });
+  } else {
+    // Grid View logic would go here
+    display.innerHTML = '<p style="padding:20px;">Grid View Placeholder - Focusing on List Logic first.</p>';
+  }
+}
+
+// Initializing strictly for Territory View
+document.getElementById('tab-my').classList.remove('active');
+document.getElementById('tab-territory').classList.add('active');
+renderTerritoryContent();
+</script>
