@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
+      /* Official ParentSquare Palette  */
       --ps-green: #85ad33;
       --ps-dark-green: #618025;
       --ps-blue: #7bbaf0;
@@ -34,10 +35,23 @@
     .card .sub-val { font-size: 14px; font-weight: 600; color: #777; margin-top: 4px; }
     .card .label { font-size: 11px; color: #888; text-transform: uppercase; font-weight: 700; margin-top: 8px; }
 
-    /* Progress Bar */
+    /* Capacity Bar Styles  */
     .summary-cap-bar { height: 10px; background: #eee; border-radius: 5px; margin-top: 12px; overflow: hidden; display: flex; }
     .cap-fill-deals { height: 100%; background: var(--ps-green); transition: width 0.5s; }
     .cap-fill-projects { height: 100%; background: var(--ps-blue); transition: width 0.5s; }
+
+    /* Categorization Headers  */
+    .group-header { 
+        background: var(--ps-light-green); 
+        color: var(--ps-dark-green); 
+        padding: 10px 15px; 
+        margin: 25px 0 15px 0; 
+        font-weight: 700; 
+        font-size: 13px; 
+        text-transform: uppercase; 
+        border-radius: 4px;
+        border-left: 5px solid var(--ps-dark-green);
+    }
 
     .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
     .btn-action { background: white; border: 1px solid #ddd; padding: 8px 16px; cursor: pointer; font-size: 12px; font-weight: 600; border-radius: 4px; transition: 0.2s; }
@@ -45,22 +59,21 @@
     .btn-sort { background: #eee; border: 1px solid #ccc; color: #555; }
     .btn-sort.active-sort { background: var(--ps-blue); color: white; border-color: var(--ps-blue); }
 
-    /* Table Styles */
-    table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+    /* Table Styles  */
+    table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; margin-bottom: 10px; }
     th { background: var(--ps-green); color: white; padding: 14px; text-align: left; font-size: 11px; text-transform: uppercase; font-weight: 700; }
     td { padding: 12px; border-bottom: 1px solid #eee; font-size: 12px; vertical-align: middle; }
     tbody tr:nth-child(even) { background-color: var(--ps-light-green); }
 
     /* Card View Grid */
-    .im-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .im-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px; }
     .im-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border-left: 5px solid var(--ps-green); }
-    .im-card h3 { margin: 0 0 10px 0; color: var(--ps-dark-green); }
+    .im-card h3 { margin: 0 0 10px 0; color: var(--ps-dark-green); font-size: 16px; }
 
     /* Modal Styles */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
-    .modal { background: white; padding: 24px; border-radius: 8px; width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .modal { background: white; padding: 24px; border-radius: 8px; width: 400px; }
     .modal textarea { width: 100%; height: 100px; margin: 15px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: none; }
-    .modal-btns { display: flex; justify-content: flex-end; gap: 10px; }
 
     .edit-btn { cursor: pointer; color: var(--ps-blue); margin-left: 8px; font-size: 14px; }
     
@@ -74,7 +87,7 @@
     <div class="logo"><img src="logo.png" alt="ParentSquare"></div>
     <div class="header-text">
       <h1>Territory Load Overview</h1>
-      <p>EST Region Workload Metrics</p>
+      <p>EST Region Categorized Workload</p>
     </div>
   </header>
 
@@ -111,7 +124,7 @@
       <button id="btn-card" class="btn-action" onclick="switchLayout('card')">Card View</button>
     </div>
     <div class="control-group">
-      <span style="font-size: 11px; font-weight: 700; color: #888; margin-right: 10px; text-transform: uppercase;">Sort By:</span>
+      <span style="font-size: 11px; font-weight: 700; color: #888; margin-right: 10px; text-transform: uppercase;">Sort & Group By:</span>
       <button id="sort-tier" class="btn-action btn-sort active-sort" onclick="setSort('tier')">Tier ↑↓</button>
       <button id="sort-cap" class="btn-action btn-sort" onclick="setSort('cap')">% Cap ↑↓</button>
     </div>
@@ -121,9 +134,9 @@
 
   <div id="note-modal" class="modal-overlay">
     <div class="modal">
-      <h3 id="modal-im-name" style="margin-top:0; color:var(--ps-dark-green);">Edit Notes</h3>
+      <h3 id="modal-im-name">Edit Notes</h3>
       <textarea id="note-text" placeholder="Type notes here..."></textarea>
-      <div class="modal-btns">
+      <div class="modal-btns" style="display:flex; justify-content:flex-end; gap:10px;">
         <button class="btn-action" onclick="closeModal()">Cancel</button>
         <button class="btn-action active" onclick="saveNote()">Save Notes</button>
       </div>
@@ -152,11 +165,11 @@ let territoryIMs = [
 ];
 
 function updateTerritoryMetrics() {
-    let totalDealPts = 0, totalProjPts = 0, totalMax = 0, yRisk = 0, rRisk = 0, stratProjCount = 0, pastDueCount = 0;
+    let totalDealPts = 0, totalProjPts = 0, totalMax = 0, yRisk = 0, rRisk = 0, stratProjCount = 0, pdCount = 0;
     territoryIMs.forEach(im => {
         totalDealPts += im.dealPts; totalProjPts += im.projPts;
         totalMax += MPC_VALUES[im.tier]; stratProjCount += im.projects;
-        pastDueCount += im.pastDue; yRisk += im.yellowRisk; rRisk += im.redRisk;
+        pdCount += im.pastDue; yRisk += im.yellowRisk; rRisk += im.redRisk;
     });
     const totalPts = totalDealPts + totalProjPts;
     const capPct = Math.round((totalPts / totalMax) * 100);
@@ -172,18 +185,24 @@ function updateTerritoryMetrics() {
     document.getElementById('t-fill-projects').style.width = (totalProjPts / totalMax * 100) + '%';
     document.getElementById('t-risk-total').innerText = `${yRisk + rRisk} At-Risk Deals`;
     document.getElementById('t-risk-breakdown').innerText = `${yRisk}Y / ${rRisk}R Breakdown`;
-    document.getElementById('t-past-due-proj').innerText = `${pastDueCount} Past Due Projects`;
+    document.getElementById('t-past-due-proj').innerText = `${pdCount} Past Due Projects`;
+}
+
+function getCapCategory(pct) {
+    if (pct >= 90) return "Critical (90%+)";
+    if (pct >= 80) return "High (80-89%)";
+    return "Stable (Under 80%)";
 }
 
 function renderContent() {
     const display = document.getElementById('territory-display');
+    display.innerHTML = '';
     
-    // Core Sorting Logic
+    // 1. Sort Data
     const sorted = [...territoryIMs].sort((a,b) => {
         let valA, valB;
         if (currentSort === 'tier') {
-            valA = parseInt(a.tier.slice(1));
-            valB = parseInt(b.tier.slice(1));
+            valA = parseInt(a.tier.slice(1)); valB = parseInt(b.tier.slice(1));
         } else {
             valA = (a.dealPts + a.projPts) / MPC_VALUES[a.tier];
             valB = (b.dealPts + b.projPts) / MPC_VALUES[b.tier];
@@ -191,34 +210,73 @@ function renderContent() {
         return sortDir === 'desc' ? valB - valA : valA - valB;
     });
 
-    if (currentLayout === 'list') {
-        display.innerHTML = `<table><thead><tr><th>Tier</th><th>IM Name</th><th>Deals (Pts)</th><th>Projs (Pts)</th><th>Total / Cap</th><th>% Cap</th><th>Risks</th><th>Notes</th></tr></thead><tbody id="table-body"></tbody></table>`;
-        const body = document.getElementById('table-body');
-        sorted.forEach(im => {
-            const mpc = MPC_VALUES[im.tier], total = im.dealPts + im.projPts, pct = Math.round((total / mpc) * 100);
-            const color = pct >= 90 ? 'var(--ps-red)' : (pct >= 80 ? 'var(--ps-gold)' : 'var(--ps-green)');
-            const note = localStorage.getItem('note_t_' + im.name) || '';
-            body.innerHTML += `<tr><td><strong>${im.tier}</strong></td><td><strong>${im.name}</strong></td><td>${im.deals} (${im.dealPts})</td><td>${im.projects} (${im.projPts})</td><td><strong>${total}</strong> / ${mpc}</td><td><span style="font-weight:700; color:${color}">${pct}%</span></td><td>${im.yellowRisk}Y / ${im.redRisk}R</td><td>${note.substring(0,20)}${note.length > 20 ? '...' : ''} <span class="edit-btn" onclick="openModal('${im.name}')">✎</span></td></tr>`;
-        });
-    } else {
-        display.innerHTML = `<div class="im-grid"></div>`;
-        const grid = display.querySelector('.im-grid');
-        sorted.forEach(im => {
-            const mpc = MPC_VALUES[im.tier], total = im.dealPts + im.projPts, pct = Math.round((total / mpc) * 100);
-            const color = pct >= 90 ? 'var(--ps-red)' : (pct >= 80 ? 'var(--ps-gold)' : 'var(--ps-green)');
-            const note = localStorage.getItem('note_t_' + im.name) || 'No notes added.';
-            grid.innerHTML += `<div class="im-card" style="border-left-color:${color}"><h3>${im.name} (${im.tier})</h3><p>Points: <strong>${total}</strong> / ${mpc} (${pct}%)</p><p style="font-size:11px; color:#666;">Deals: ${im.deals} | Projs: ${im.projects} | Risks: ${im.yellowRisk}Y/${im.redRisk}R</p><p style="font-style:italic; font-size:12px; margin-top:10px; border-top:1px solid #eee; padding-top:8px;">"${note}" <span class="edit-btn" onclick="openModal('${im.name}')">✎</span></p></div>`;
-        });
-    }
+    // 2. Group Data
+    let groups = {};
+    sorted.forEach(im => {
+        const key = currentSort === 'tier' ? `Tier ${im.tier.slice(1)}` : getCapCategory(Math.round(((im.dealPts + im.projPts) / MPC_VALUES[im.tier]) * 100));
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(im);
+    });
+
+    // 3. Render Groups
+    Object.keys(groups).forEach(groupName => {
+        const header = document.createElement('div');
+        header.className = 'group-header';
+        header.innerText = groupName;
+        display.appendChild(header);
+
+        if (currentLayout === 'list') {
+            const table = document.createElement('table');
+            table.innerHTML = `<thead><tr><th>IM Name</th><th>Deals (Pts)</th><th>Projs (Pts)</th><th>Total / Cap</th><th>% Cap</th><th>Risks (Y/R|P)</th><th>Notes</th></tr></thead><tbody id="body-${groupName.replace(/\s/g, '')}"></tbody>`;
+            display.appendChild(table);
+            const body = table.querySelector('tbody');
+            
+            groups[groupName].forEach(im => {
+                const mpc = MPC_VALUES[im.tier], total = im.dealPts + im.projPts, pct = Math.round((total / mpc) * 100);
+                const color = pct >= 90 ? 'var(--ps-red)' : (pct >= 80 ? 'var(--ps-gold)' : 'var(--ps-green)');
+                const note = localStorage.getItem('note_t_' + im.name) || '';
+                body.innerHTML += `<tr>
+                    <td><strong>${im.name}</strong></td>
+                    <td>${im.deals} (${im.dealPts})</td>
+                    <td>${im.projects} (${im.projPts})</td>
+                    <td><strong>${total}</strong> / ${mpc}</td>
+                    <td><span style="font-weight:700; color:${color}">${pct}%</span></td>
+                    <td>${im.yellowRisk}Y / ${im.redRisk}R | <span style="${im.pastDue > 0 ? 'color:var(--ps-red);font-weight:bold;' : ''}">${im.pastDue}P</span></td>
+                    <td>${note.substring(0,15)}${note.length > 15 ? '...' : ''} <span class="edit-btn" onclick="openModal('${im.name}')">✎</span></td>
+                </tr>`;
+            });
+        } else {
+            const grid = document.createElement('div');
+            grid.className = 'im-grid';
+            display.appendChild(grid);
+            
+            groups[groupName].forEach(im => {
+                const mpc = MPC_VALUES[im.tier], total = im.dealPts + im.projPts, pct = Math.round((total / mpc) * 100);
+                const color = pct >= 90 ? 'var(--ps-red)' : (pct >= 80 ? 'var(--ps-gold)' : 'var(--ps-green)');
+                const note = localStorage.getItem('note_t_' + im.name) || 'No notes added.';
+                grid.innerHTML += `
+                    <div class="im-card" style="border-left-color:${color}">
+                        <h3>${im.name}</h3>
+                        <div style="font-size:12px; margin-bottom:10px;">
+                            Points: <strong>${total}</strong> / ${mpc} (${pct}%)<br>
+                            Deals: ${im.deals} | Projs: ${im.projects} | Risks: ${im.yellowRisk}Y/${im.redRisk}R | Past Due: ${im.pastDue}
+                        </div>
+                        <div class="summary-cap-bar" style="height:8px; margin-bottom:15px;">
+                            <div style="width:${(im.dealPts/mpc)*100}%; background:var(--ps-green);"></div>
+                            <div style="width:${(im.projPts/mpc)*100}%; background:var(--ps-blue);"></div>
+                        </div>
+                        <p style="font-style:italic; font-size:11px; margin-top:10px; border-top:1px solid #eee; padding-top:8px;">
+                            "${note}" <span class="edit-btn" onclick="openModal('${im.name}')">✎</span>
+                        </p>
+                    </div>`;
+            });
+        }
+    });
 }
 
 function setSort(type) {
-    if (currentSort === type) {
-        sortDir = sortDir === 'desc' ? 'asc' : 'desc';
-    } else {
-        currentSort = type;
-        sortDir = 'desc';
-    }
+    if (currentSort === type) sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+    else { currentSort = type; sortDir = 'desc'; }
     document.querySelectorAll('.btn-sort').forEach(b => b.classList.remove('active-sort'));
     document.getElementById('sort-' + type).classList.add('active-sort');
     renderContent();
@@ -239,12 +297,8 @@ function openModal(name) {
 }
 
 function closeModal() { document.getElementById('note-modal').style.display = 'none'; }
-
-function saveNote() {
-    localStorage.setItem('note_t_' + editingIM, document.getElementById('note-text').value);
-    closeModal();
-    renderContent();
-}
+function saveNote() { localStorage.setItem('note_t_' + editingIM, document.getElementById('note-text').value); closeModal(); renderContent(); }
+window.onclick = e => { if (e.target.className === 'modal-overlay') closeModal(); };
 
 updateTerritoryMetrics();
 renderContent();
