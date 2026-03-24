@@ -7,7 +7,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      /* Official ParentSquare Palette [cite: 110-119] */
       --ps-green: #85ad33;
       --ps-dark-green: #618025;
       --ps-blue: #7bbaf0;
@@ -28,7 +27,7 @@
     .header-text h1 { color: var(--ps-green); margin: 0; font-size: 24px; font-weight: 700; line-height: 1.2; }
     .header-text p { margin: 4px 0 0; color: #666; font-size: 16px; font-weight: 600; }
 
-    /* Summary Cards per requirements */
+    /* Summary Cards */
     .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 32px; }
     .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border-top: 4px solid var(--ps-green); min-height: 120px; display: flex; flex-direction: column; justify-content: center; }
     .card .main-val { font-size: 24px; font-weight: 700; color: var(--ps-dark-green); }
@@ -40,16 +39,30 @@
     .cap-fill-deals { height: 100%; background: var(--ps-green); transition: width 0.5s; }
     .cap-fill-projects { height: 100%; background: var(--ps-blue); transition: width 0.5s; }
 
-    .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
     .btn-action { background: white; border: 1px solid #ddd; padding: 8px 16px; cursor: pointer; font-size: 12px; font-weight: 600; border-radius: 4px; transition: 0.2s; }
+    .btn-action.active { background: var(--ps-green) !important; color: white !important; border-color: var(--ps-green) !important; }
+    .btn-sort { background: #eee; border: 1px solid #ccc; color: #555; }
+    .btn-sort.active-sort { background: var(--ps-blue); color: white; border-color: var(--ps-blue); }
 
-    /* Table Formatting [cite: 74-80] */
+    /* Table Styles */
     table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
     th { background: var(--ps-green); color: white; padding: 14px; text-align: left; font-size: 11px; text-transform: uppercase; font-weight: 700; }
     td { padding: 12px; border-bottom: 1px solid #eee; font-size: 12px; vertical-align: middle; }
     tbody tr:nth-child(even) { background-color: var(--ps-light-green); }
 
-    .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    /* Card View Grid */
+    .im-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .im-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border-left: 5px solid var(--ps-green); }
+    .im-card h3 { margin: 0 0 10px 0; color: var(--ps-dark-green); }
+
+    /* Modal Styles */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; }
+    .modal { background: white; padding: 24px; border-radius: 8px; width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .modal textarea { width: 100%; height: 100px; margin: 15px 0; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: none; }
+    .modal-btns { display: flex; justify-content: flex-end; gap: 10px; }
+
+    .edit-btn { cursor: pointer; color: var(--ps-blue); margin-left: 8px; font-size: 14px; }
     
     footer { text-align: center; padding: 40px; color: var(--ps-dark-gray); font-size: 10px; font-weight: 600; }
   </style>
@@ -93,115 +106,148 @@
   </div>
 
   <div class="controls">
-    <h2 style="color:var(--ps-dark-green); margin:0;">Regional IM Roster</h2>
     <div class="control-group">
-      <button class="btn-action" onclick="toggleSort()">Sort Tier ↑↓</button>
+      <button id="btn-list" class="btn-action active" onclick="switchLayout('list')">List View</button>
+      <button id="btn-card" class="btn-action" onclick="switchLayout('card')">Card View</button>
+    </div>
+    <div class="control-group">
+      <span style="font-size: 11px; font-weight: 700; color: #888; margin-right: 10px; text-transform: uppercase;">Sort By:</span>
+      <button id="sort-tier" class="btn-action btn-sort active-sort" onclick="setSort('tier')">Tier ↑↓</button>
+      <button id="sort-cap" class="btn-action btn-sort" onclick="setSort('cap')">% Cap ↑↓</button>
     </div>
   </div>
 
   <div id="territory-display"></div>
+
+  <div id="note-modal" class="modal-overlay">
+    <div class="modal">
+      <h3 id="modal-im-name" style="margin-top:0; color:var(--ps-dark-green);">Edit Notes</h3>
+      <textarea id="note-text" placeholder="Type notes here..."></textarea>
+      <div class="modal-btns">
+        <button class="btn-action" onclick="closeModal()">Cancel</button>
+        <button class="btn-action active" onclick="saveNote()">Save Notes</button>
+      </div>
+    </div>
+  </div>
 
   <footer>© 2026 ParentSquare • Implementation Manager Dashboard</footer>
 </div>
 
 <script>
 const MPC_VALUES = { "T1": 70, "T2": 90, "T3": 120, "T4": 120, "T5": 90 };
+let currentLayout = 'list';
+let currentSort = 'tier';
 let sortDir = 'desc';
+let editingIM = null;
 
-// Sample EST Territory Data
 let territoryIMs = [
   { name: "Alex R.", tier: "T4", dealPts: 95, projPts: 20, deals: 14, projects: 3, pastDue: 1, yellowRisk: 2, redRisk: 1 },
   { name: "Jordan M.", tier: "T2", dealPts: 60, projPts: 10, deals: 9, projects: 2, pastDue: 0, yellowRisk: 1, redRisk: 0 },
   { name: "Casey S.", tier: "T3", dealPts: 45, projPts: 0, deals: 10, projects: 0, pastDue: 0, yellowRisk: 0, redRisk: 0 },
-  { name: "Morgan L.", tier: "T1", dealPts: 52, projPts: 15, deals: 11, projects: 4, pastDue: 2, yellowRisk: 2, redRisk: 1 }
+  { name: "Morgan L.", tier: "T1", dealPts: 52, projPts: 15, deals: 11, projects: 4, pastDue: 2, yellowRisk: 2, redRisk: 1 },
+  { name: "Riley W.", tier: "T2", dealPts: 80, projPts: 5, deals: 13, projects: 1, pastDue: 0, yellowRisk: 2, redRisk: 0 },
+  { name: "Taylor B.", tier: "T3", dealPts: 95, projPts: 25, deals: 14, projects: 5, pastDue: 1, yellowRisk: 2, redRisk: 2 },
+  { name: "Quinn J.", tier: "T1", dealPts: 30, projPts: 5, deals: 8, projects: 1, pastDue: 0, yellowRisk: 0, redRisk: 0 },
+  { name: "Skyler P.", tier: "T5", dealPts: 40, projPts: 12, deals: 9, projects: 2, pastDue: 0, yellowRisk: 0, redRisk: 0 }
 ];
 
 function updateTerritoryMetrics() {
     let totalDealPts = 0, totalProjPts = 0, totalMax = 0, yRisk = 0, rRisk = 0, stratProjCount = 0, pastDueCount = 0;
-    
     territoryIMs.forEach(im => {
-        totalDealPts += im.dealPts;
-        totalProjPts += im.projPts;
-        totalMax += MPC_VALUES[im.tier];
-        stratProjCount += im.projects;
-        pastDueCount += im.pastDue;
-        yRisk += im.yellowRisk;
-        rRisk += im.redRisk;
+        totalDealPts += im.dealPts; totalProjPts += im.projPts;
+        totalMax += MPC_VALUES[im.tier]; stratProjCount += im.projects;
+        pastDueCount += im.pastDue; yRisk += im.yellowRisk; rRisk += im.redRisk;
     });
-
     const totalPts = totalDealPts + totalProjPts;
     const capPct = Math.round((totalPts / totalMax) * 100);
 
-    // Card 1
     document.getElementById('t-im-count').innerText = territoryIMs.length;
     document.getElementById('t-strat-proj').innerText = stratProjCount;
-
-    // Card 2
     document.getElementById('t-total-pts').innerText = totalPts;
     document.getElementById('t-max-pts').innerText = totalMax;
     document.getElementById('t-deal-pts').innerText = totalDealPts;
     document.getElementById('t-proj-pts').innerText = totalProjPts;
-
-    // Card 3
     document.getElementById('t-cap-pct').innerText = capPct + '%';
     document.getElementById('t-fill-deals').style.width = (totalDealPts / totalMax * 100) + '%';
     document.getElementById('t-fill-projects').style.width = (totalProjPts / totalMax * 100) + '%';
-
-    // Card 4
     document.getElementById('t-risk-total').innerText = `${yRisk + rRisk} At-Risk Deals`;
     document.getElementById('t-risk-breakdown').innerText = `${yRisk}Y / ${rRisk}R Breakdown`;
     document.getElementById('t-past-due-proj').innerText = `${pastDueCount} Past Due Projects`;
 }
 
-function renderList() {
+function renderContent() {
     const display = document.getElementById('territory-display');
-    display.innerHTML = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Tier</th>
-                    <th>IM Name</th>
-                    <th>Deals (Pts)</th>
-                    <th>Projs (Pts)</th>
-                    <th>Total / Cap</th>
-                    <th>% Used</th>
-                    <th>Risks</th>
-                </tr>
-            </thead>
-            <tbody id="table-body"></tbody>
-        </table>
-    `;
-
-    const body = document.getElementById('table-body');
+    
+    // Core Sorting Logic
     const sorted = [...territoryIMs].sort((a,b) => {
-        const tA = parseInt(a.tier.slice(1)), tB = parseInt(b.tier.slice(1));
-        return sortDir === 'desc' ? tB - tA : tA - tB;
+        let valA, valB;
+        if (currentSort === 'tier') {
+            valA = parseInt(a.tier.slice(1));
+            valB = parseInt(b.tier.slice(1));
+        } else {
+            valA = (a.dealPts + a.projPts) / MPC_VALUES[a.tier];
+            valB = (b.dealPts + b.projPts) / MPC_VALUES[b.tier];
+        }
+        return sortDir === 'desc' ? valB - valA : valA - valB;
     });
 
-    sorted.forEach(im => {
-        const mpc = MPC_VALUES[im.tier];
-        const total = im.dealPts + im.projPts;
-        const pct = Math.round((total / mpc) * 100);
-        const color = pct >= 90 ? 'var(--ps-red)' : (pct >= 80 ? 'var(--ps-gold)' : 'var(--ps-green)');
-        
-        body.innerHTML += `
-            <tr>
-                <td><strong>${im.tier}</strong></td>
-                <td><strong>${im.name}</strong></td>
-                <td>${im.deals} <span style="color:#888;">(${im.dealPts})</span></td>
-                <td>${im.projects} <span style="color:#888;">(${im.projPts})</span></td>
-                <td><strong>${total}</strong> / ${mpc}</td>
-                <td><span style="font-weight:700; color:${color}">${pct}%</span></td>
-                <td>${im.yellowRisk}Y / ${im.redRisk}R</td>
-            </tr>
-        `;
-    });
+    if (currentLayout === 'list') {
+        display.innerHTML = `<table><thead><tr><th>Tier</th><th>IM Name</th><th>Deals (Pts)</th><th>Projs (Pts)</th><th>Total / Cap</th><th>% Cap</th><th>Risks</th><th>Notes</th></tr></thead><tbody id="table-body"></tbody></table>`;
+        const body = document.getElementById('table-body');
+        sorted.forEach(im => {
+            const mpc = MPC_VALUES[im.tier], total = im.dealPts + im.projPts, pct = Math.round((total / mpc) * 100);
+            const color = pct >= 90 ? 'var(--ps-red)' : (pct >= 80 ? 'var(--ps-gold)' : 'var(--ps-green)');
+            const note = localStorage.getItem('note_t_' + im.name) || '';
+            body.innerHTML += `<tr><td><strong>${im.tier}</strong></td><td><strong>${im.name}</strong></td><td>${im.deals} (${im.dealPts})</td><td>${im.projects} (${im.projPts})</td><td><strong>${total}</strong> / ${mpc}</td><td><span style="font-weight:700; color:${color}">${pct}%</span></td><td>${im.yellowRisk}Y / ${im.redRisk}R</td><td>${note.substring(0,20)}${note.length > 20 ? '...' : ''} <span class="edit-btn" onclick="openModal('${im.name}')">✎</span></td></tr>`;
+        });
+    } else {
+        display.innerHTML = `<div class="im-grid"></div>`;
+        const grid = display.querySelector('.im-grid');
+        sorted.forEach(im => {
+            const mpc = MPC_VALUES[im.tier], total = im.dealPts + im.projPts, pct = Math.round((total / mpc) * 100);
+            const color = pct >= 90 ? 'var(--ps-red)' : (pct >= 80 ? 'var(--ps-gold)' : 'var(--ps-green)');
+            const note = localStorage.getItem('note_t_' + im.name) || 'No notes added.';
+            grid.innerHTML += `<div class="im-card" style="border-left-color:${color}"><h3>${im.name} (${im.tier})</h3><p>Points: <strong>${total}</strong> / ${mpc} (${pct}%)</p><p style="font-size:11px; color:#666;">Deals: ${im.deals} | Projs: ${im.projects} | Risks: ${im.yellowRisk}Y/${im.redRisk}R</p><p style="font-style:italic; font-size:12px; margin-top:10px; border-top:1px solid #eee; padding-top:8px;">"${note}" <span class="edit-btn" onclick="openModal('${im.name}')">✎</span></p></div>`;
+        });
+    }
 }
 
-function toggleSort() { sortDir = sortDir === 'desc' ? 'asc' : 'desc'; renderList(); }
+function setSort(type) {
+    if (currentSort === type) {
+        sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+    } else {
+        currentSort = type;
+        sortDir = 'desc';
+    }
+    document.querySelectorAll('.btn-sort').forEach(b => b.classList.remove('active-sort'));
+    document.getElementById('sort-' + type).classList.add('active-sort');
+    renderContent();
+}
+
+function switchLayout(l) { 
+    currentLayout = l; 
+    document.getElementById('btn-list').classList.toggle('active', l === 'list');
+    document.getElementById('btn-card').classList.toggle('active', l === 'card');
+    renderContent(); 
+}
+
+function openModal(name) {
+    editingIM = name;
+    document.getElementById('modal-im-name').innerText = `Notes for ${name}`;
+    document.getElementById('note-text').value = localStorage.getItem('note_t_' + name) || '';
+    document.getElementById('note-modal').style.display = 'flex';
+}
+
+function closeModal() { document.getElementById('note-modal').style.display = 'none'; }
+
+function saveNote() {
+    localStorage.setItem('note_t_' + editingIM, document.getElementById('note-text').value);
+    closeModal();
+    renderContent();
+}
 
 updateTerritoryMetrics();
-renderList();
+renderContent();
 </script>
 </body>
 </html>
