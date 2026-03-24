@@ -1,85 +1,212 @@
-<div id="view-territory" class="view active">
-  <div class="controls">
-    <h2 style="color:var(--ps-dark-green); margin:0;">Territory Load Overview (EST)</h2>
-    <div class="control-group">
-      <button id="btn-sort-tier-territory" class="btn-action" onclick="toggleTierSort()">Sort Tier ↑↓</button>
-      <button id="btn-grid-territory" class="btn-action" onclick="setLayout('grid')">Card View</button>
-      <button id="btn-list-territory" class="btn-action active" onclick="setLayout('list')">List View</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ParentSquare - Territory Overview</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ps-green: #85ad33;
+      --ps-dark-green: #618025;
+      --ps-blue: #7bbaf0;
+      --ps-gold: #f2b001;
+      --ps-light-green: #e5f1d4;
+      --ps-light-gray: #f7f8f8;
+      --ps-dark-gray: #444444;
+      --ps-red: #d9534f;
+      --ps-light-red: #f2dede;
+    }
+
+    * { box-sizing: border-box; font-family: "Montserrat", Arial, sans-serif; }
+    body { margin: 0; background: var(--ps-light-gray); color: var(--ps-dark-gray); }
+    .container { max-width: 1450px; margin: 0 auto; padding: 24px; }
+
+    header { display: flex; align-items: center; gap: 20px; margin-bottom: 30px; }
+    .logo img { height: 45px; width: auto; } 
+    .header-text h1 { color: var(--ps-green); margin: 0; font-size: 24px; font-weight: 700; line-height: 1.2; }
+    .header-text p { margin: 4px 0 0; color: #666; font-size: 16px; font-weight: 600; }
+
+    /* Summary Cards for Territory Context */
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 32px; }
+    .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border-top: 4px solid var(--ps-green); min-height: 120px; display: flex; flex-direction: column; justify-content: center; }
+    .card .main-val { font-size: 24px; font-weight: 700; color: var(--ps-dark-green); }
+    .card .sub-val { font-size: 14px; font-weight: 600; color: #777; margin-top: 4px; }
+    .card .label { font-size: 11px; color: #888; text-transform: uppercase; font-weight: 700; margin-top: 8px; }
+
+    /* Progress Bar */
+    .summary-cap-bar { height: 10px; background: #eee; border-radius: 5px; margin-top: 12px; overflow: hidden; display: flex; }
+    .cap-fill-deals { height: 100%; background: var(--ps-green); transition: width 0.5s; }
+    .cap-fill-projects { height: 100%; background: var(--ps-blue); transition: width 0.5s; }
+
+    /* Controls */
+    .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .btn-action { background: white; border: 1px solid #ddd; padding: 8px 16px; cursor: pointer; font-size: 12px; font-weight: 600; border-radius: 4px; transition: 0.2s; }
+    .btn-action.active { background: var(--ps-green) !important; color: white !important; border-color: var(--ps-green) !important; }
+
+    /* Branded Table [cite: 74-80] */
+    table { width: 100%; border-collapse: collapse; background: white; border: 2pt solid var(--ps-green); border-radius: 8px; overflow: hidden; }
+    th { background: var(--ps-green); color: white; padding: 14px; text-align: left; font-size: 11px; text-transform: uppercase; font-weight: 700; }
+    td { padding: 12px; border-bottom: 1px solid #eee; font-size: 12px; vertical-align: middle; }
+    tbody tr:nth-child(even) { background-color: var(--ps-light-green); } /* Zebra striping  */
+
+    .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    .overload-row { background-color: var(--ps-overload-bg) !important; }
+    
+    footer { text-align: center; padding: 40px; color: var(--ps-dark-gray); font-size: 10px; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo"><img src="logo.png" alt="ParentSquare"></div>
+    <div class="header-text">
+      <h1>Territory Load Overview</h1>
+      <p>EST Region Visibility</p>
+    </div>
+  </header>
+
+  <div class="summary">
+    <div class="card">
+        <div class="main-val"><span id="t-im-count">0</span> IMs</div>
+        <div class="sub-val"><span id="t-deal-count">0</span> Total Deals</div>
+        <div class="label">Territory Volume</div>
+    </div>
+    <div class="card">
+        <div class="main-val"><span id="t-total-pts">0</span> / <span id="t-max-pts">0</span></div>
+        <div class="sub-val"><span id="t-proj-pts">0</span> Project Points</div>
+        <div class="label">Total Points vs Capacity</div>
+    </div>
+    <div class="card">
+        <div id="t-cap-pct" class="main-val">0%</div>
+        <div class="summary-cap-bar">
+            <div id="t-fill-deals" class="cap-fill-deals"></div>
+            <div id="t-fill-projects" class="cap-fill-projects"></div>
+        </div>
+        <div class="label">Territory Capacity Used</div>
+    </div>
+    <div class="card">
+        <div id="t-risk-val" class="main-val">0Y / 0R</div>
+        <div class="label">Territory Risk Health</div>
     </div>
   </div>
-  
+
+  <div class="controls">
+    <h2 style="color:var(--ps-dark-green); margin:0;">IM Roster</h2>
+    <div class="control-group">
+      <button class="btn-action" onclick="toggleSort()">Sort Tier ↑↓</button>
+      <button id="layout-list" class="btn-action active" onclick="changeLayout('list')">List View</button>
+      <button id="layout-grid" class="btn-action" onclick="changeLayout('grid')">Card View</button>
+    </div>
+  </div>
+
   <div id="territory-display"></div>
+
+  <footer>© 2026 ParentSquare • Implementation Manager Dashboard</footer>
 </div>
 
 <script>
-/* LOCKED DATA FROM MY WORKLOAD:
-   We will keep the global color constants and point values in place.
-   The following logic focuses strictly on the Territory/Team views.
-*/
+const MPC_VALUES = { "T1": 70, "T2": 90, "T3": 120, "T4": 120, "T5": 90 };
+let currentLayout = 'list';
+let sortDir = 'desc';
 
-// Mock Data for Territory (EST)
-// We need to add "projectPoints" and "projectCount" to these objects
-let territoryData = [
-  { name: "Alex R.", tier: "T4", dealPoints: 85, projectPoints: 12, dealsCount: 10, projectCount: 2, yellowRisk: 2, redRisk: 1, tz: "EST" },
-  { name: "Jordan M.", tier: "T2", dealPoints: 65, projectPoints: 5, dealsCount: 9, projectCount: 1, yellowRisk: 1, redRisk: 0, tz: "EST" },
-  { name: "Casey S.", tier: "T3", dealPoints: 45, projectPoints: 0, dealsCount: 10, projectCount: 0, yellowRisk: 0, redRisk: 0, tz: "EST" },
-  { name: "Morgan L.", tier: "T1", dealPoints: 55, projectPoints: 10, dealsCount: 11, projectCount: 3, yellowRisk: 2, redRisk: 1, tz: "EST" }
+// Sample Territory Data with Deal and Project breakdown
+let territoryIMs = [
+  { name: "Alex R.", tier: "T4", dealPts: 105, projPts: 20, deals: 14, projects: 3, yellowRisk: 2, redRisk: 1 },
+  { name: "Jordan M.", tier: "T2", dealPts: 60, projPts: 10, deals: 9, projects: 2, yellowRisk: 1, redRisk: 0 },
+  { name: "Casey S.", tier: "T3", dealPts: 45, projPts: 0, deals: 10, projects: 0, yellowRisk: 0, redRisk: 0 },
+  { name: "Morgan L.", tier: "T1", dealPts: 48, projPts: 15, deals: 11, projects: 4, yellowRisk: 2, redRisk: 1 },
+  { name: "Riley W.", tier: "T2", dealPts: 80, projPts: 5, deals: 13, projects: 1, yellowRisk: 2, redRisk: 0 },
+  { name: "Taylor B.", tier: "T3", dealPts: 95, projPts: 25, deals: 14, projects: 5, yellowRisk: 2, redRisk: 2 }
 ];
 
-function renderTerritoryContent() {
-  const display = document.getElementById('territory-display');
-  if(!display) return;
-  display.innerHTML = '';
-  
-  // Current Layout Logic
-  if (currentLayout === 'list') {
-    const table = document.createElement('table');
-    table.style.border = "1px solid #ddd"; // Branded border
-    table.innerHTML = `
-      <thead>
-        <tr>
-          <th>Tier</th>
-          <th>IM Name</th>
-          <th>Deal Pts</th>
-          <th>Proj Pts</th>
-          <th>Total / Cap</th>
-          <th>% Cap</th>
-          <th>Risks</th>
-          <th>Notes</th>
-        </tr>
-      </thead>
-      <tbody id="territory-list-body"></tbody>
-    `;
-    display.appendChild(table);
+function updateTerritoryMetrics() {
+    let totalDeals = 0, totalDealPts = 0, totalProjPts = 0, totalMax = 0, yRisk = 0, rRisk = 0;
     
-    const body = document.getElementById('territory-list-body');
-    territoryData.forEach(im => {
-      const mpc = MPC_VALUES[im.tier];
-      const totalPoints = im.dealPoints + im.projectPoints;
-      const capPct = Math.round((totalPoints / mpc) * 100);
-      const statusColor = capPct >= 90 ? 'var(--ps-red)' : (capPct >= 80 ? 'var(--ps-gold)' : 'var(--ps-green)');
-      
-      body.innerHTML += `
-        <tr>
-          <td>${im.tier}</td>
-          <td><strong>${im.name}</strong></td>
-          <td>${im.dealPoints}</td>
-          <td>${im.projectPoints}</td>
-          <td><strong>${totalPoints}</strong> / ${mpc}</td>
-          <td><span style="color:${statusColor}; font-weight:700;">${capPct}%</span></td>
-          <td>${im.yellowRisk}Y / ${im.redRisk}R</td>
-          <td><input type="text" style="width:100%; border:1px solid #eee;" placeholder="Add note..."></td>
-        </tr>
-      `;
+    territoryIMs.forEach(im => {
+        totalDeals += im.deals;
+        totalDealPts += im.dealPts;
+        totalProjPts += im.projPts;
+        totalMax += MPC_VALUES[im.tier];
+        yRisk += im.yellowRisk;
+        rRisk += im.redRisk;
     });
-  } else {
-    // Grid View logic would go here
-    display.innerHTML = '<p style="padding:20px;">Grid View Placeholder - Focusing on List Logic first.</p>';
-  }
+
+    const totalPts = totalDealPts + totalProjPts;
+    const capPct = Math.round((totalPts / totalMax) * 100);
+
+    document.getElementById('t-im-count').innerText = territoryIMs.length;
+    document.getElementById('t-deal-count').innerText = totalDeals;
+    document.getElementById('t-total-pts').innerText = totalPts;
+    document.getElementById('t-max-pts').innerText = totalMax;
+    document.getElementById('t-proj-pts').innerText = totalProjPts;
+    document.getElementById('t-cap-pct').innerText = capPct + '%';
+    document.getElementById('t-risk-val').innerText = `${yRisk}Y / ${rRisk}R`;
+
+    document.getElementById('t-fill-deals').style.width = (totalDealPts / totalMax * 100) + '%';
+    document.getElementById('t-fill-projects').style.width = (totalProjPts / totalMax * 100) + '%';
 }
 
-// Initializing strictly for Territory View
-document.getElementById('tab-my').classList.remove('active');
-document.getElementById('tab-territory').classList.add('active');
-renderTerritoryContent();
+function renderList() {
+    const display = document.getElementById('territory-display');
+    display.innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Tier</th>
+                    <th>IM Name</th>
+                    <th>Deals (Pts)</th>
+                    <th>Projs (Pts)</th>
+                    <th>Total / Cap</th>
+                    <th>% Used</th>
+                    <th>Risks</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    `;
+
+    const body = document.getElementById('table-body');
+    const sorted = [...territoryIMs].sort((a,b) => {
+        const tA = parseInt(a.tier.slice(1)), tB = parseInt(b.tier.slice(1));
+        return sortDir === 'desc' ? tB - tA : tA - tB;
+    });
+
+    sorted.forEach(im => {
+        const mpc = MPC_VALUES[im.tier];
+        const total = im.dealPts + im.projPts;
+        const pct = Math.round((total / mpc) * 100);
+        const color = pct >= 90 ? 'var(--ps-red)' : (pct >= 80 ? 'var(--ps-gold)' : 'var(--ps-green)');
+        
+        body.innerHTML += `
+            <tr class="${pct >= 100 ? 'overload-row' : ''}">
+                <td><strong>${im.tier}</strong></td>
+                <td><strong>${im.name}</strong></td>
+                <td>${im.deals} <span style="color:#888;">(${im.dealPts})</span></td>
+                <td>${im.projects} <span style="color:#888;">(${im.projPts})</span></td>
+                <td><strong>${total}</strong> / ${mpc}</td>
+                <td><span style="font-weight:700; color:${color}">${pct}%</span></td>
+                <td>${im.yellowRisk}Y / ${im.redRisk}R</td>
+                <td><span class="status-dot" style="background:${color}"></span>${pct >= 100 ? 'Overload' : 'Available'}</td>
+            </tr>
+        `;
+    });
+}
+
+function changeLayout(l) {
+    currentLayout = l;
+    document.getElementById('layout-list').classList.toggle('active', l === 'list');
+    document.getElementById('layout-grid').classList.toggle('active', l === 'grid');
+    if (l === 'list') renderList(); else displayPlaceholder();
+}
+
+function toggleSort() { sortDir = sortDir === 'desc' ? 'asc' : 'desc'; renderList(); }
+function displayPlaceholder() { document.getElementById('territory-display').innerHTML = '<p style="padding:40px; text-align:center; color:#888;">Grid view logic placeholder - Iterating on List View first.</p>'; }
+
+updateTerritoryMetrics();
+renderList();
 </script>
+</body>
+</html>
